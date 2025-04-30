@@ -5,6 +5,8 @@ const cors = require("cors");
 const mongoose = require("mongoose"); // Import mongoose
 const socketHandler = require("./sockets/socketHandler");
 
+require("dotenv").config();
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -16,7 +18,7 @@ const io = new Server(server, {
 
 // Connect to MongoDB (localhost, db name 'demorun')
 mongoose
-  .connect("mongodb://localhost:27017/demorun", {
+  .connect(process.env.MONGO_DB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
@@ -36,7 +38,7 @@ io.on("connection", (socket) => {
 });
 
 // Server listening
-const PORT = 3000;
+const PORT = process.env.PORT || 45271;
 server.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });

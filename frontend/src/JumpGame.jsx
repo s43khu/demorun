@@ -118,7 +118,12 @@ const JumpGame = () => {
 
   const preload = function () {
     this.load.image('player', 'https://labs.phaser.io/assets/sprites/phaser-dude.png');
-    this.load.image('platform', 'https://labs.phaser.io/assets/sprites/platform.png');
+    this.load.image('platform', 'assets/platform.png');
+    this.load.image('groundTile', 'https://labs.phaser.io/assets/tilemaps/tiles/tileset.png');
+    this.load.image('dangerTile', 'https://labs.phaser.io/assets/tilemaps/tiles/tileset-danger.png');
+    this.load.image('platformTile', 'https://labs.phaser.io/assets/tilemaps/tiles/tileset-platform.png');
+    this.load.image('jumpTile', 'https://labs.phaser.io/assets/tilemaps/tiles/tileset-jump.png');
+  
   };
 
   const create = async function() {
@@ -129,21 +134,36 @@ const JumpGame = () => {
 
 
     const platforms = this.physics.add.staticGroup();
+    
 
     const ground = platforms.create(screenWidth / 2, screenHeight - 20, 'platform');
     const groundScaleX = screenWidth / ground.width;
     ground.setScale(groundScaleX, 1).refreshBody();
 
     const levelData = loadLevel(screenWidth, screenHeight);
-    levelData.forEach(({ x, y, color }) => {
-      const plat = platforms.create(x, y, 'platform').setScale(0.5).refreshBody();
-      plat.setTint(color);
+    levelData.forEach(({ x, y, tile , tilesCount = 3 }) => {
+      let platform;
+  
+  for (let i = 0; i < tilesCount; i++) {
+  const tileSpacing = 18;
+  if (tile === 'groundTile') {
+    platform = platforms.create(x + (i * tileSpacing), y, 'groundTile');
+  } else if (tile === 'dangerTile') {
+    platform = platforms.create(x + (i * tileSpacing), y, 'dangerTile');
+  } else if (tile === 'jumpTile') {
+    platform = platforms.create(x + (i * tileSpacing), y, 'jumpTile');
+  } else if (tile === 'platformTile') {
+    platform = platforms.create(x + (i * tileSpacing), y, 'platformTile');
+  }
+
+  platform.setScale(0.5).refreshBody();
+}
     });
 
     const maxHeightAboveGround = Math.abs(lastPosition.y) + screenHeight + 500;
 
-this.physics.world.setBounds(0, -maxHeightAboveGround, screenWidth, maxHeightAboveGround + screenHeight);
-this.cameras.main.setBounds(0, -maxHeightAboveGround, screenWidth, maxHeightAboveGround + screenHeight);
+    this.physics.world.setBounds(0, -maxHeightAboveGround, screenWidth, maxHeightAboveGround + screenHeight);
+    this.cameras.main.setBounds(0, -maxHeightAboveGround, screenWidth, maxHeightAboveGround + screenHeight);
 
 
     playerRef.current = this.physics.add.sprite(screenWidth / 2, screenHeight - 100, 'player').setScale(0.5);
@@ -164,8 +184,8 @@ this.cameras.main.setBounds(0, -maxHeightAboveGround, screenWidth, maxHeightAbov
     this.physics.world.wrap(playerRef.current, 5);
 
     this.cameras.main.startFollow(playerRef.current, true, 0.05, 0.05);
-    this.cameras.main.setBounds(0, -1500, screenWidth, screenHeight + 1500);
-    this.physics.world.setBounds(0, -1500, screenWidth, screenHeight + 1500);
+    // this.cameras.main.setBounds(0, -1500, screenWidth, screenHeight + 1500);
+    // this.physics.world.setBounds(0, -1500, screenWidth, screenHeight + 1500);
 
     this.winText = this.add.text(screenWidth / 2, playerRef.current.y - 200, '', {
       fontSize: '48px',
@@ -212,7 +232,7 @@ this.cameras.main.setBounds(0, -maxHeightAboveGround, screenWidth, maxHeightAbov
     // });
   
     // --- REMOVE THIS SECTION temporarily ---
-    // const lastPlatformY = this.winText.y - 2100; 
+    // const lastPlatformY = this.winText.y - 1000; 
     // if (playerRef.current.y < lastPlatformY) {
     //   setShowOverlay(true);
     // } else {
