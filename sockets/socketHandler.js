@@ -3,24 +3,24 @@ const {
   handlePlayerReconnect,
   handlePlayerDisconnect,
   handlePlayerRequestLastPosition,
-} = require("../controllers/socketController");
+} = require('../controllers/socketController');
 
 module.exports = (socket, io) => {
   console.log(`✅ New User Connected: ${socket.id}`);
 
-  socket.on("player:update", (data) => {
+  socket.on('player:update', (data) => {
     handlePlayerUpdate(socket, data);
   });
 
-  socket.on("player:reconnect", (data) => {
+  socket.on('player:reconnect', (data) => {
     handlePlayerReconnect(socket, data);
   });
 
-  socket.on("player:requestLastPosition", (data) => {
+  socket.on('player:requestLastPosition', (data) => {
     handlePlayerRequestLastPosition(socket, data);
   });
 
-  socket.on("disconnect", () => {
+  socket.on('disconnect', () => {
     handlePlayerDisconnect(socket, io);
   });
 };

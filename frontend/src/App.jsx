@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import LandingPage from './LandingPage';
 import JumpGame from './JumpGame';
-import { Toaster } from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
 function App() {
@@ -26,12 +26,20 @@ function App() {
 
   const handleNameSubmit = (e) => {
     e.preventDefault();
-    const name = e.target.elements.name.value.trim();
-    if (name) {
-      localStorage.setItem('playerName', name);
-      setPlayerName(name);
-      setShowNameModal(false);
+    const rawName = e.target.elements.name.value.trim();
+
+    const isValid = /^[a-zA-Z0-9]{1,7}$/.test(rawName);
+
+    if (!isValid) {
+      toast.error(
+        'Name must be 1–7 characters with no spaces or special characters.'
+      );
+      return;
     }
+
+    localStorage.setItem('playerName', rawName);
+    setPlayerName(rawName);
+    setShowNameModal(false);
   };
 
   return (
@@ -58,7 +66,10 @@ function App() {
       {showGame ? (
         <JumpGame playerName={playerName} />
       ) : (
-        <LandingPage onPlay={handlePlay} onSetName={() => setShowNameModal(true)} />
+        <LandingPage
+          onPlay={handlePlay}
+          onSetName={() => setShowNameModal(true)}
+        />
       )}
 
       <AnimatePresence>
@@ -71,12 +82,14 @@ function App() {
           >
             <motion.form
               onSubmit={handleNameSubmit}
-              className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center relative"
+              className="bg-gray-800 rounded-2xl shadow-2xl p-8 w-full max-w-md text-center relative"
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
             >
-              <h2 className="text-2xl font-bold mb-4 text-gray-800">Save your name</h2>
+              <h2 className="text-2xl font-bold mb-4 text-white">
+                Save your name
+              </h2>
               <input
                 type="text"
                 name="name"
@@ -84,6 +97,10 @@ function App() {
                 defaultValue={playerName}
                 className="w-full px-4 py-2 mb-4 border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 autoFocus
+                maxLength={7}
+                onInput={(e) => {
+                  e.target.value = e.target.value.replace(/[^a-zA-Z0-9]/g, '');
+                }}
               />
               <button
                 type="submit"

@@ -1,32 +1,29 @@
-// /services/playerService.js
-const Player = require("../models/playerModel");
+const Player = require('../models/playerModel');
 
-// Save player progress to MongoDB
 const savePlayerProgress = async (data) => {
   try {
-    const { userId, x, y } = data;
+    const { userId, x, y, name } = data;
 
-    // Check if the player exists
     let player = await Player.findOne({ userId });
 
     if (player) {
-      // Update player progress
       player.x = x;
       player.y = y;
+      if (name !== player.name) {
+        player.name = name;
+      }
       await player.save();
       console.log(`✅ Player ${userId} progress updated.`);
     } else {
-      // Create a new player if they don't exist
-      player = new Player({ userId, x, y });
+      player = new Player({ userId, x, y, name });
       await player.save();
       console.log(`✅ New player ${userId} progress saved.`);
     }
   } catch (err) {
-    console.log("❌ Error saving player progress:", err);
+    console.log('❌ Error saving player progress:', err);
   }
 };
 
-// Get player progress from MongoDB
 const getPlayerProgress = async (userId) => {
   try {
     const player = await Player.findOne({ userId });
@@ -36,15 +33,29 @@ const getPlayerProgress = async (userId) => {
       return player;
     } else {
       console.log(`❌ Player ${userId} not found.`);
-      return { x: 0, y: 0 }; // Default values if player not found
+      return { x: 0, y: 0 };
     }
   } catch (err) {
-    console.log("❌ Error retrieving player progress:", err);
-    return { x: 0, y: 0 }; // Default values in case of error
+    console.log('❌ Error retrieving player progress:', err);
+    return { x: 0, y: 0 };
   }
 };
+
+async function getAllPlayersExcept(userId) {
+  const results = await Player.find({
+    userId: { $ne: userId },
+  });
+
+  return results.map((p) => ({
+    userId: p.userId,
+    x: p.x,
+    y: p.y,
+    name: p.name,
+  }));
+}
 
 module.exports = {
   savePlayerProgress,
   getPlayerProgress,
+  getAllPlayersExcept,
 };

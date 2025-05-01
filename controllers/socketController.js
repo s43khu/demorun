@@ -1,22 +1,22 @@
 const {
   getPlayerProgress,
   savePlayerProgress,
-} = require("../services/playerService");
+  getAllPlayersExcept,
+} = require('../services/playerService');
 
-let players = {}; // Track players in the game
+let players = {};
 
 const handlePlayerUpdate = (socket, data) => {
   console.log(`📩 Player Update from ${socket.id}:`, data);
   savePlayerProgress(data);
-  // Update the player position in memory
   players[socket.id] = {
     x: data.x,
     y: data.y,
     userId: data.userId,
+    name: data.name,
   };
 
-  // Broadcast the updated player data to all players
-  socket.broadcast.emit("player:sync", {
+  socket.broadcast.emit('player:sync', {
     id: socket.id,
     ...players[socket.id],
   });
@@ -24,19 +24,39 @@ const handlePlayerUpdate = (socket, data) => {
 
 const handlePlayerReconnect = async (socket, data) => {
   console.log(`🔄 Player Reconnect from ${socket.id}:`, data);
+  const myUserId = data.userId;
 
-  // Send all players' data to the reconnecting player
-  socket.emit("all-players", players);
+  const connectedPlayers = Object.entries(players)
+    .filter(([sid, info]) => info.userId !== myUserId)
+    .map(([sid, info]) => ({
+      id: sid,
+      x: info.x,
+      y: info.y,
+      userId: info.userId,
+      name: info.name,
+    }));
+
+  let dbPlayers = await getAllPlayersExcept(myUserId);
+
+  const connectedUserIds = new Set(Object.values(players).map((p) => p.userId));
+  dbPlayers = dbPlayers.filter((p) => !connectedUserIds.has(p.userId));
+
+  const offlinePlayers = dbPlayers.map((p) => ({
+    id: `offline:${p.userId}`,
+    x: p.x,
+    y: p.y,
+    userId: p.userId,
+    name: p.name,
+  }));
+
+  socket.emit('all-players', [...connectedPlayers, ...offlinePlayers]);
 };
-
 const handlePlayerDisconnect = (socket) => {
   console.log(`❌ User Disconnected: ${socket.id}`);
 
-  // Remove the player from the in-memory players list
   delete players[socket.id];
 
-  // Notify all other players to remove this player from their view
-  socket.broadcast.emit("player:remove", socket.id);
+  socket.broadcast.emit('player:remove', socket.id);
 };
 
 const handlePlayerRequestLastPosition = async (socket, data) => {
@@ -46,7 +66,7 @@ const handlePlayerRequestLastPosition = async (socket, data) => {
     const playerProgress = await getPlayerProgress(data.userId);
 
     if (playerProgress) {
-      socket.emit("player:lastPosition", {
+      socket.emit('player:lastPosition', {
         id: socket.id,
         x: playerProgress.x,
         y: playerProgress.y,
@@ -54,11 +74,11 @@ const handlePlayerRequestLastPosition = async (socket, data) => {
       });
     } else {
       console.log(`⚠️ No saved progress found for userId ${data.userId}`);
-      socket.emit("player:lastPosition", null);
+      socket.emit('player:lastPosition', null);
     }
   } catch (error) {
-    console.error("❌ Error fetching player progress:", error);
-    socket.emit("player:lastPosition", null);
+    console.error('❌ Error fetching player progress:', error);
+    socket.emit('player:lastPosition', null);
   }
 };
 

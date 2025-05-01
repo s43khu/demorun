@@ -7,7 +7,7 @@ import TextPressure from './animations/TextPressure';
 
 export default function LandingPage({ onPlay, onSetName }) {
   const handleSoundToggle = () => {
-    toast.success("Sound toggle coming soon!");
+    toast.success('Sound toggle coming soon!');
   };
 
   const buttonHover = {
@@ -23,13 +23,9 @@ export default function LandingPage({ onPlay, onSetName }) {
     <div className="relative h-screen w-screen bg-[#0d0d0d] overflow-hidden flex items-center justify-center">
       <ParticleBackground />
       <div className="z-10 flex flex-col gap-6 text-center px-4">
-   <GlitchText
-  speed={1}
-  enableShadows={true}
-  className='custom-class'
->
-  DemoRun
-</GlitchText>
+        <GlitchText speed={1} enableShadows={true} className="custom-class">
+          DemoRun
+        </GlitchText>
         <div className="flex flex-col gap-4">
           <motion.button
             whileHover={buttonHover}
@@ -37,19 +33,18 @@ export default function LandingPage({ onPlay, onSetName }) {
             className="bg-[#00ffff] text-[#0d0d0d] px-6 py-3 rounded-lg font-bold text-lg"
             onClick={onPlay}
           >
-              <TextPressure
-    text=" Play Game"
-    flex={true}
-    alpha={false}
-    stroke={false}
-    width={true}
-    weight={true}
-    italic={true}
-    textColor="#ffffff"
-    strokeColor="#ff0000"
-    minFontSize={36}
-  />
-           
+            <TextPressure
+              text=" Play Game"
+              flex={true}
+              alpha={false}
+              stroke={false}
+              width={true}
+              weight={true}
+              italic={true}
+              textColor="#ffffff"
+              strokeColor="#ff0000"
+              minFontSize={36}
+            />
           </motion.button>
           <motion.button
             whileHover={buttonHover}
