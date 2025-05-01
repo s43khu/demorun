@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Phaser from 'phaser';
 import { io } from 'socket.io-client';
 import { loadLevel } from './levels/levelManager';
+import FuzzyText from './animations/FuzzyText';
 
 const JumpGame = () => {
   const gameRef = useRef(null); 
@@ -10,6 +11,7 @@ const JumpGame = () => {
   const otherPlayersRef = useRef({});
   const [showOverlay, setShowOverlay] = useState(false); 
   const previousPosition = useRef({ x: 0, y: 0 }); 
+  const [isLoading, setIsLoading] = useState(true);
   const [players, setPlayers] = useState({});
 
   const getPlayerId = () => {
@@ -194,6 +196,7 @@ const JumpGame = () => {
     }).setOrigin(0.5);
 
     socketRef.current.emit('player:reconnect', { userId: playerId.current });
+    setIsLoading(false);
   };
 
   const update = function () {
@@ -220,7 +223,17 @@ const JumpGame = () => {
       previousPosition.current = { x: playerRef.current.x, y: playerRef.current.y };
     }
   
-    // draw other players
+    const cameraY = this.cameras.main.scrollY;
+    const cameraHeight = this.cameras.main.height;
+    const upperLimit = this.physics.world.bounds.y;
+  
+    if (playerRef.current.y < upperLimit + 500) {
+      const newTop = upperLimit - 1000;
+      this.physics.world.setBounds(0, newTop, this.scale.width, Math.abs(newTop) + cameraHeight);
+      this.cameras.main.setBounds(0, newTop, this.scale.width, Math.abs(newTop) + cameraHeight);
+    }
+
+        // draw other players
     // Object.entries(players).forEach(([id, playerData]) => {
     //   if (id !== socketRef.current.id) { 
     //     const avatar = otherPlayersRef.current[id];
@@ -239,10 +252,21 @@ const JumpGame = () => {
     //   setShowOverlay(false);
     // }
   };
-  
+
 
   return (
     <div id="game-container" style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}>
+
+{isLoading && 
+    (
+<FuzzyText
+  baseIntensity={0.2} 
+  hoverIntensity={0.5} 
+  enableHover={true}
+>
+ LOADING>>>
+</FuzzyText>
+  )}
       {showOverlay && (
         <div
           style={{
