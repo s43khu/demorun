@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Phaser from 'phaser';
 import { io } from 'socket.io-client';
+import bricks from './assets/bricks.png';
 import { loadLevel } from './levels/levelManager';
 import FuzzyText from './animations/FuzzyText';
 
@@ -359,7 +360,15 @@ const JumpGame = () => {
   return (
     <div
       id="game-container"
-      style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}
+      style={{
+        width: '100vw',
+        height: '100vh',
+        backgroundImage: `url(${bricks})`,
+        backgroundRepeat: 'repeat',
+        backgroundSize: 'auto',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
     >
       {isLoading && (
         <FuzzyText baseIntensity={0.2} hoverIntensity={0.5} enableHover={true}>
