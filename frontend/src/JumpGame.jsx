@@ -247,7 +247,6 @@ const JumpGame = () => {
     playerRef.current = this.physics.add
       .sprite(screenWidth / 2, screenHeight - 100, 'player')
       .setScale(0.5);
-
     playerRef.current.body.allowGravity = false;
 
     playerRef.current.setBounce(0.2);
