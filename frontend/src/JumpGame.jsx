@@ -49,6 +49,11 @@ const JumpGame = () => {
     });
   };
 
+  const getRandomTint = () => {
+    const randomColor = Math.floor(Math.random() * 0xffffff); 
+    return randomColor;
+  };
+
   useEffect(() => {
     socketRef.current = io(process.env.REACT_APP_BACKEND_URL);
     socketRef.current.emit('player:reconnect', {
@@ -88,20 +93,23 @@ const JumpGame = () => {
 
     socketRef.current.on('player:sync', (data) => {
       if (data.id === socketRef.current.id) return;
-
+    
       const currentScene = gameRef.current.scene.keys.default;
+    
 
+      const randomTint = getRandomTint();
+    
       if (!otherPlayersRef.current[data.id]) {
-        const avatar = currentScene.add.sprite(data.x, data.y, 'player').setScale(0.5);
-        avatar.setTint(0x00ff00);
-      
+        const avatar = currentScene.add.sprite(data.x, data.y, 'player').setScale(0.20);
+        avatar.setTint(randomTint);  
+    
         const nameTag = currentScene.add.text(data.x, data.y - 50, data.name || 'Unknown', {
           font: '16px Arial',
           fill: '#ffffff',
           stroke: '#000000',
           strokeThickness: 3,
         }).setOrigin(0.5);
-      
+    
         otherPlayersRef.current[data.id] = {
           sprite: avatar,
           nameTag,
@@ -113,7 +121,7 @@ const JumpGame = () => {
         player.targetX = data.x;
         player.targetY = data.y;
       }
-
+    
       setPlayers((prev) => ({
         ...prev,
         [data.id]: data,
@@ -123,20 +131,22 @@ const JumpGame = () => {
     socketRef.current.on('all-players', (allPlayers) => {
       const currentScene = gameRef.current.scene.keys.default;
       const others = {};
-
+    
       Object.entries(allPlayers).forEach(([id, data]) => {
         if (id !== socketRef.current.id) {
           if (!otherPlayersRef.current[data.id]) {
-            const avatar = currentScene.add.sprite(data.x, data.y, 'player').setScale(0.5);
-            avatar.setTint(0x00ff00);
-          
+            const randomTint = getRandomTint();  
+    
+            const avatar = currentScene.add.sprite(data.x, data.y, 'player').setScale(0.20);
+            avatar.setTint(randomTint);  
+    
             const nameTag = currentScene.add.text(data.x, data.y - 50, data.name || 'Unknown', {
               font: '16px Arial',
               fill: '#ffffff',
               stroke: '#000000',
               strokeThickness: 3,
             }).setOrigin(0.5);
-          
+    
             otherPlayersRef.current[data.id] = {
               sprite: avatar,
               nameTag,
@@ -151,10 +161,9 @@ const JumpGame = () => {
           others[id] = data;
         }
       });
-
+    
       setPlayers((prev) => ({ ...prev, ...others }));
     });
-
     socketRef.current.on('player:remove', (playerId) => {
       setPlayers((prevPlayers) => {
         const { [playerId]: _, ...rest } = prevPlayers;
@@ -287,21 +296,21 @@ const JumpGame = () => {
   
     if (this.cursors.left.isDown) {
       velocityX = -500;
-      playerRef.current.anims.play('walk', true); 
+      playerRef.current.anims.play('walk', true);
       playerRef.current.setFlipX(true);
     } else if (this.cursors.right.isDown) {
-      velocityX = 500;  
-      playerRef.current.anims.play('walk', true); 
-      playerRef.current.setFlipX(false); 
+      velocityX = 500;
+      playerRef.current.anims.play('walk', true);
+      playerRef.current.setFlipX(false);
     } else {
-      playerRef.current.anims.play('stand'); 
+      playerRef.current.anims.play('stand');
     }
   
     playerRef.current.setVelocityX(velocityX);
   
     if (this.cursors.up.isDown && playerRef.current.body.touching.down) {
       playerRef.current.anims.play('jump');
-      playerRef.current.setVelocityY(-550); 
+      playerRef.current.setVelocityY(-550);
     }
   
     if (!(this.cursors.up.isDown && playerRef.current.body.touching.down)) {
@@ -324,39 +333,27 @@ const JumpGame = () => {
       };
     }
   
-    const currentTime = Date.now();
-    if (this.input.keyboard.addKey('SPACE').isDown && currentTime - lastShootTime > 5000) {
-      const projectile = this.physics.add.sprite(playerRef.current.x, playerRef.current.y, 'projectile').setScale(0.2);
-      projectile.setVelocityX(playerRef.current.flipX ? -800 : 800); 
-      projectile.setCollideWorldBounds(true);
-      projectile.setBounce(1); 
-  
-      projectilesRef.current.push(projectile);
-  
-      this.physics.add.collider(projectile, otherPlayersRef.current, (projectile, player) => {
-        player.setVelocityX(player.flipX ? 500 : -500); 
-        projectile.destroy(); 
-      });
-  
-      lastShootTime = currentTime;
-    }
-  
-    projectilesRef.current.forEach((projectile, index) => {
-      if (
-        projectile.x < 0 || projectile.x > this.sys.game.config.width ||
-        projectile.y < 0 || projectile.y > this.sys.game.config.height
-      ) {
-        projectile.destroy(); 
-        projectilesRef.current.splice(index, 1);
-      }
-    });
-  
     Object.entries(otherPlayersRef.current).forEach(([id, player]) => {
       if (player.sprite && player.targetX !== undefined) {
         player.sprite.x = Phaser.Math.Linear(player.sprite.x, player.targetX, 0.1);
         player.sprite.y = Phaser.Math.Linear(player.sprite.y, player.targetY, 0.1);
         player.nameTag.x = player.sprite.x;
         player.nameTag.y = player.sprite.y - 50;
+    
+        const positionThreshold = 5; 
+    
+        const isAtTargetX = Math.abs(player.sprite.x - player.targetX) <= positionThreshold;
+        const isAtTargetY = Math.abs(player.sprite.y - player.targetY) <= positionThreshold;
+    
+        if (!isAtTargetX || !isAtTargetY) {
+          if (!isAtTargetX) {
+            player.sprite.anims.play('walk', true);
+          } else if (!isAtTargetY) {
+            player.sprite.anims.play('jump', true);
+          }
+        } else {
+          player.sprite.anims.play('stand', true);
+        }
       }
     });
   };
