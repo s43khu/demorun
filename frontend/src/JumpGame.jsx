@@ -2,6 +2,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import Phaser from 'phaser';
 import { io } from 'socket.io-client';
 import bricks from './assets/bricks.png';
+import dirt from './assets/Ground/Dirt/dirt.png';
+import dirt_left from './assets/Ground/Dirt/dirtCliff_left.png';
+import dirt_right from './assets/Ground/Dirt/dirtCliff_right.png';
+import alienBiege_walk1 from './assets/Players/Variable sizes/Beige/alienBiege_walk1.png';
+import alienBiege_walk2 from './assets/Players/Variable sizes/Beige/alienBiege_walk2.png';
+import alienBiege_jump from './assets/Players/Variable sizes/Beige/alienBiege_jump.png';
+import alienBiege_stand from './assets/Players/Variable sizes/Beige/alienBiege_stand.png';
 import { loadLevel } from './levels/levelManager';
 import FuzzyText from './animations/FuzzyText';
 
@@ -15,6 +22,8 @@ const JumpGame = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [players, setPlayers] = useState({});
   const playerName = localStorage.getItem('playerName') || 'Player';
+  const projectilesRef = useRef([]);
+  const lastShootTime = useRef(Date.now());
 
   const getPlayerId = () => {
     let playerId = localStorage.getItem('playerId-demoAArun');
@@ -83,25 +92,26 @@ const JumpGame = () => {
       const currentScene = gameRef.current.scene.keys.default;
 
       if (!otherPlayersRef.current[data.id]) {
-        const avatar = currentScene.add
-          .sprite(data.x, data.y, 'player')
-          .setScale(0.5);
+        const avatar = currentScene.add.sprite(data.x, data.y, 'player').setScale(0.5);
         avatar.setTint(0x00ff00);
-
-        const nameTag = currentScene.add
-          .text(data.x, data.y - 50, data.name || 'Unknown', {
-            font: '16px Arial',
-            fill: '#ffffff',
-            stroke: '#000000',
-            strokeThickness: 3,
-          })
-          .setOrigin(0.5);
-
-        otherPlayersRef.current[data.id] = { sprite: avatar, nameTag };
+      
+        const nameTag = currentScene.add.text(data.x, data.y - 50, data.name || 'Unknown', {
+          font: '16px Arial',
+          fill: '#ffffff',
+          stroke: '#000000',
+          strokeThickness: 3,
+        }).setOrigin(0.5);
+      
+        otherPlayersRef.current[data.id] = {
+          sprite: avatar,
+          nameTag,
+          targetX: data.x,
+          targetY: data.y,
+        };
       } else {
         const player = otherPlayersRef.current[data.id];
-        player.sprite.setPosition(data.x, data.y);
-        player.nameTag.setPosition(data.x, data.y - 50);
+        player.targetX = data.x;
+        player.targetY = data.y;
       }
 
       setPlayers((prev) => ({
@@ -117,25 +127,26 @@ const JumpGame = () => {
       Object.entries(allPlayers).forEach(([id, data]) => {
         if (id !== socketRef.current.id) {
           if (!otherPlayersRef.current[data.id]) {
-            const avatar = currentScene.add
-              .sprite(data.x, data.y, 'player')
-              .setScale(0.5);
+            const avatar = currentScene.add.sprite(data.x, data.y, 'player').setScale(0.5);
             avatar.setTint(0x00ff00);
-
-            const nameTag = currentScene.add
-              .text(data.x, data.y - 50, data.name || 'Unknown', {
-                font: '16px Arial',
-                fill: '#ffffff',
-                stroke: '#000000',
-                strokeThickness: 3,
-              })
-              .setOrigin(0.5);
-
-            otherPlayersRef.current[data.id] = { sprite: avatar, nameTag };
+          
+            const nameTag = currentScene.add.text(data.x, data.y - 50, data.name || 'Unknown', {
+              font: '16px Arial',
+              fill: '#ffffff',
+              stroke: '#000000',
+              strokeThickness: 3,
+            }).setOrigin(0.5);
+          
+            otherPlayersRef.current[data.id] = {
+              sprite: avatar,
+              nameTag,
+              targetX: data.x,
+              targetY: data.y,
+            };
           } else {
             const player = otherPlayersRef.current[data.id];
-            player.sprite.setPosition(data.x, data.y);
-            player.nameTag.setPosition(data.x, data.y - 50);
+            player.targetX = data.x;
+            player.targetY = data.y;
           }
           others[id] = data;
         }
@@ -171,27 +182,14 @@ const JumpGame = () => {
   };
 
   const preload = function () {
-    this.load.image(
-      'player',
-      'https://labs.phaser.io/assets/sprites/phaser-dude.png'
-    );
+    this.load.image('player_walk1', alienBiege_walk1);
+    this.load.image('player_walk2', alienBiege_walk2);
+    this.load.image('player_jump', alienBiege_jump);
+    this.load.image('player_stand', alienBiege_stand);
     this.load.image('platform', 'assets/platform.png');
-    this.load.image(
-      'groundTile',
-      'https://labs.phaser.io/assets/tilemaps/tiles/tileset.png'
-    );
-    this.load.image(
-      'dangerTile',
-      'https://labs.phaser.io/assets/tilemaps/tiles/tileset-danger.png'
-    );
-    this.load.image(
-      'platformTile',
-      'https://labs.phaser.io/assets/tilemaps/tiles/tileset-platform.png'
-    );
-    this.load.image(
-      'jumpTile',
-      'https://labs.phaser.io/assets/tilemaps/tiles/tileset-jump.png'
-    );
+    this.load.image('groundTileM', dirt);
+    this.load.image('groundTileR', dirt_right);
+    this.load.image('groundTileL', dirt_left);
   };
 
   const create = async function () {
@@ -199,39 +197,32 @@ const JumpGame = () => {
     const screenHeight = 6000;
     const lastPosition = await getPlayerPosition(playerId.current);
     console.log('Last Position from DB:', lastPosition);
-
+  
     const platforms = this.physics.add.staticGroup();
-
     const ground = platforms.create(
-      screenWidth / 2,
-      screenHeight - 20,
+      screenWidth / 2, 
+      screenHeight - 20, 
       'platform'
     );
     const groundScaleX = screenWidth / ground.width;
     ground.setScale(groundScaleX, 1).refreshBody();
-
+  
     const levelData = loadLevel(screenWidth, screenHeight);
     levelData.forEach(({ x, y, tile, tilesCount = 3 }) => {
-      let platform;
-
       for (let i = 0; i < tilesCount; i++) {
         const tileSpacing = 18;
-        if (tile === 'groundTile') {
-          platform = platforms.create(x + i * tileSpacing, y, 'groundTile');
-        } else if (tile === 'dangerTile') {
-          platform = platforms.create(x + i * tileSpacing, y, 'dangerTile');
-        } else if (tile === 'jumpTile') {
-          platform = platforms.create(x + i * tileSpacing, y, 'jumpTile');
-        } else if (tile === 'platformTile') {
-          platform = platforms.create(x + i * tileSpacing, y, 'platformTile');
-        }
-
-        platform.setScale(0.5).refreshBody();
+        let tileKey = tile;
+        if (i === 0) tileKey = 'groundTileL';
+        else if (i === tilesCount - 1) tileKey = 'groundTileR';
+        else tileKey = 'groundTileM';
+  
+        const tileSprite = platforms.create(x + i * tileSpacing, y, tileKey);
+        tileSprite.setScale(0.5, 0.3).refreshBody();
       }
     });
-
+  
     const maxHeightAboveGround = Math.abs(lastPosition.y) + screenHeight + 500;
-
+  
     this.physics.world.setBounds(
       0,
       -maxHeightAboveGround,
@@ -244,40 +235,43 @@ const JumpGame = () => {
       screenWidth,
       maxHeightAboveGround + screenHeight
     );
+  
+    playerRef.current = this.physics.add.sprite(screenWidth / 2, screenHeight - 100, 'player_stand').setScale(0.20);
+    playerRef.current.setPosition(lastPosition.x, lastPosition.y);
 
-    playerRef.current = this.physics.add
-      .sprite(screenWidth / 2, screenHeight - 100, 'player')
-      .setScale(0.5);
-    playerRef.current.body.allowGravity = false;
-
+    this.anims.create({
+      key: 'walk',
+      frames: [
+        { key: 'player_walk1' },
+        { key: 'player_walk2' }
+      ],
+      frameRate: 10,
+      repeat: -1
+    });
+  
+    this.anims.create({
+      key: 'jump',
+      frames: [{ key: 'player_jump' }],
+      frameRate: 10
+    });
+  
+    this.anims.create({
+      key: 'stand',
+      frames: [{ key: 'player_stand' }],
+      frameRate: 10
+    });
+  
+    playerRef.current.anims.play('stand');
+    playerRef.current.body.allowGravity = true; 
     playerRef.current.setBounce(0.2);
     playerRef.current.setCollideWorldBounds(true);
     playerRef.current.setDragX(600);
     playerRef.current.setMaxVelocity(300, 600);
     this.physics.add.collider(playerRef.current, platforms);
-    playerRef.current.setPosition(lastPosition.x, lastPosition.y);
-
-    playerRef.current.body.allowGravity = true;
-
+  
     this.cursors = this.input.keyboard.createCursorKeys();
-
     this.physics.world.wrap(playerRef.current, 5);
-
     this.cameras.main.startFollow(playerRef.current, true, 0.05, 0.05);
-
-    const aspectRatio = window.innerWidth / window.innerHeight;
-    this.cameras.main.setZoom(Math.min(1, aspectRatio));
-
-    // this.cameras.main.setBounds(0, -1500, screenWidth, screenHeight + 1500);
-    // this.physics.world.setBounds(0, -1500, screenWidth, screenHeight + 1500);
-
-    this.winText = this.add
-      .text(screenWidth / 2, playerRef.current.y - 200, '', {
-        fontSize: '48px',
-        color: '#00ff00',
-        fontFamily: 'Arial',
-      })
-      .setOrigin(0.5);
 
     socketRef.current.emit('player:reconnect', {
       userId: playerId.current,
@@ -285,22 +279,35 @@ const JumpGame = () => {
     });
     setIsLoading(false);
   };
-
+  
   const update = function () {
     if (!playerRef.current || !this.cursors) return;
-
+  
+    let velocityX = 0;
+  
     if (this.cursors.left.isDown) {
-      playerRef.current.setAccelerationX(-600);
+      velocityX = -500;
+      playerRef.current.anims.play('walk', true); 
+      playerRef.current.setFlipX(true);
     } else if (this.cursors.right.isDown) {
-      playerRef.current.setAccelerationX(600);
+      velocityX = 500;  
+      playerRef.current.anims.play('walk', true); 
+      playerRef.current.setFlipX(false); 
     } else {
-      playerRef.current.setAccelerationX(0);
+      playerRef.current.anims.play('stand'); 
     }
-
+  
+    playerRef.current.setVelocityX(velocityX);
+  
     if (this.cursors.up.isDown && playerRef.current.body.touching.down) {
-      playerRef.current.setVelocityY(-600);
+      playerRef.current.anims.play('jump');
+      playerRef.current.setVelocityY(-550); 
     }
-
+  
+    if (!(this.cursors.up.isDown && playerRef.current.body.touching.down)) {
+      playerRef.current.setVelocityY(playerRef.current.body.velocity.y);
+    }
+  
     if (
       playerRef.current.x !== previousPosition.current.x ||
       playerRef.current.y !== previousPosition.current.y
@@ -316,47 +323,44 @@ const JumpGame = () => {
         y: playerRef.current.y,
       };
     }
-
-    const cameraY = this.cameras.main.scrollY;
-    const cameraHeight = this.cameras.main.height;
-    const upperLimit = this.physics.world.bounds.y;
-
-    if (playerRef.current.y < upperLimit + 500) {
-      const newTop = upperLimit - 1000;
-      this.physics.world.setBounds(
-        0,
-        newTop,
-        this.scale.width,
-        Math.abs(newTop) + cameraHeight
-      );
-      this.cameras.main.setBounds(
-        0,
-        newTop,
-        this.scale.width,
-        Math.abs(newTop) + cameraHeight
-      );
+  
+    const currentTime = Date.now();
+    if (this.input.keyboard.addKey('SPACE').isDown && currentTime - lastShootTime > 5000) {
+      const projectile = this.physics.add.sprite(playerRef.current.x, playerRef.current.y, 'projectile').setScale(0.2);
+      projectile.setVelocityX(playerRef.current.flipX ? -800 : 800); 
+      projectile.setCollideWorldBounds(true);
+      projectile.setBounce(1); 
+  
+      projectilesRef.current.push(projectile);
+  
+      this.physics.add.collider(projectile, otherPlayersRef.current, (projectile, player) => {
+        player.setVelocityX(player.flipX ? 500 : -500); 
+        projectile.destroy(); 
+      });
+  
+      lastShootTime = currentTime;
     }
-
-    // draw other players
-    // Object.entries(players).forEach(([id, playerData]) => {
-    //   if (id !== socketRef.current.id) {
-    //     const avatar = otherPlayersRef.current[id];
-    //     if (avatar) {
-    //       avatar.x = playerData.x;
-    //       avatar.y = playerData.y;
-    //     }
-    //   }
-    // });
-
-    // --- REMOVE THIS SECTION temporarily ---
-    // const lastPlatformY = this.winText.y - 1000;
-    // if (playerRef.current.y < lastPlatformY) {
-    //   setShowOverlay(true);
-    // } else {
-    //   setShowOverlay(false);
-    // }
+  
+    projectilesRef.current.forEach((projectile, index) => {
+      if (
+        projectile.x < 0 || projectile.x > this.sys.game.config.width ||
+        projectile.y < 0 || projectile.y > this.sys.game.config.height
+      ) {
+        projectile.destroy(); 
+        projectilesRef.current.splice(index, 1);
+      }
+    });
+  
+    Object.entries(otherPlayersRef.current).forEach(([id, player]) => {
+      if (player.sprite && player.targetX !== undefined) {
+        player.sprite.x = Phaser.Math.Linear(player.sprite.x, player.targetX, 0.1);
+        player.sprite.y = Phaser.Math.Linear(player.sprite.y, player.targetY, 0.1);
+        player.nameTag.x = player.sprite.x;
+        player.nameTag.y = player.sprite.y - 50;
+      }
+    });
   };
-
+  
   return (
     <div
       id="game-container"
