@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import LandingPage from './LandingPage';
-import JumpGame from './JumpGame';
+import EnhancedJumpGame from './EnhancedJumpGame';
 import toast, { Toaster } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -64,7 +64,7 @@ function App() {
       />
 
       {showGame ? (
-        <JumpGame playerName={playerName} />
+        <EnhancedJumpGame playerName={playerName} />
       ) : (
         <LandingPage
           onPlay={handlePlay}

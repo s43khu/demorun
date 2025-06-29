@@ -9,6 +9,7 @@ const FuzzyText = ({
   enableHover = true,
   baseIntensity = 0.18,
   hoverIntensity = 0.5,
+  visible = false,
 }) => {
   const canvasRef = useRef(null);
 
@@ -207,7 +208,7 @@ const FuzzyText = ({
         width: '100vw',
         height: '100vh',
         zIndex: 9999,
-        display: 'block',
+        display: visible ? 'block' : 'none',
         background: 'black',
       }}
     />

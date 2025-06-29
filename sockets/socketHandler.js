@@ -3,6 +3,13 @@ const {
   handlePlayerReconnect,
   handlePlayerDisconnect,
   handlePlayerRequestLastPosition,
+  handleLeaderboardRequest,
+  handleStatsUpdate,
+  handleCollectible,
+  handleAchievementUnlock,
+  handleAchievementRequest,
+  handlePlayerReset,
+  handleDebugRequest,
 } = require('../controllers/socketController');
 
 module.exports = (socket, io) => {
@@ -18,6 +25,34 @@ module.exports = (socket, io) => {
 
   socket.on('player:requestLastPosition', (data) => {
     handlePlayerRequestLastPosition(socket, data);
+  });
+
+  socket.on('leaderboard:request', () => {
+    handleLeaderboardRequest(socket);
+  });
+
+  socket.on('stats:update', (data) => {
+    handleStatsUpdate(socket, data);
+  });
+
+  socket.on('collectible:collected', (data) => {
+    handleCollectible(socket, data);
+  });
+
+  socket.on('achievement:unlock', (data) => {
+    handleAchievementUnlock(socket, data);
+  });
+
+  socket.on('player:requestAchievements', (data) => {
+    handleAchievementRequest(socket, data);
+  });
+
+  socket.on('player:reset', (data) => {
+    handlePlayerReset(socket, data);
+  });
+
+  socket.on('debug:request', () => {
+    handleDebugRequest(socket);
   });
 
   socket.on('disconnect', () => {

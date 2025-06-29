@@ -4,13 +4,21 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon server.js",
+    "start": "node server.js",
+    "setup": "node setup.js",
     "format": "prettier --write .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
+  "keywords": [
+    "game",
+    "multiplayer",
+    "platformer",
+    "phaser",
+    "socket.io"
+  ],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "Multiplayer 2D platformer game backend with real-time synchronization",
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",

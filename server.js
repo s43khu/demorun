@@ -4,6 +4,12 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const socketHandler = require('./sockets/socketHandler');
+const {
+  getLeaderboardAPI,
+  getTopPlayersAPI,
+  getPlayerAchievementsAPI,
+  getGameStatsAPI,
+} = require('./controllers/gameController');
 
 require('dotenv').config();
 
@@ -11,7 +17,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: '*',
+    origin: process.env.SOCKET_CORS_ORIGIN || 'http://localhost:3000',
     methods: ['GET', 'POST'],
   },
 });
@@ -24,12 +30,22 @@ mongoose
   .then(() => console.log('✅ Connected to MongoDB'))
   .catch((err) => console.log('❌ MongoDB connection error:', err));
 
-app.use(cors());
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 app.get('/', (req, res) => {
   res.send('Jump Game Backend running 🏗️');
 });
+
+app.get('/api/leaderboard', getLeaderboardAPI);
+app.get('/api/top-players', getTopPlayersAPI);
+app.get('/api/player/:userId/achievements', getPlayerAchievementsAPI);
+app.get('/api/game-stats', getGameStatsAPI);
 
 io.on('connection', (socket) => {
   socketHandler(socket, io);
