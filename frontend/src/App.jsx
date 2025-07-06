@@ -48,13 +48,13 @@ function App() {
         position="top-center"
         reverseOrder={false}
         toastOptions={{
-          duration: 5000,
+          duration: 500,
           style: {
             background: '#363636',
             color: '#fff',
           },
           success: {
-            duration: 3000,
+            duration: 500,
             iconTheme: {
               primary: 'green',
               secondary: 'black',
